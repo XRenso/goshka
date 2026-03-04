@@ -1,0 +1,58 @@
+name: Tests
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  detect-changes:
+    name: Detect changed tasks
+    runs-on: ubuntu-latest
+    outputs:
+      tasks: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find changed task folders
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            GitCliTool:
+              - 'GitCliTool/**'
+
+  test-GitCliTool:
+    name: "Test Task 1 — GitCliTool"
+    needs: detect-changes
+    if: ${{ contains(needs.detect-changes.outputs.tasks, 'GitCliTool') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: GitCliTool/go.mod
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install pytest
+
+      - name: Build GitCliTool binary
+        working-directory: GitCliTool
+        run: go build -o gitpeek .
+
+      - name: Run Python tests
+        working-directory: GitCliTool
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m pytest tests/ -v --tb=short
