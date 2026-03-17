@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package repo;
 
-option go_package = "github.com/XRenso/superservice/pkg/pb";
+option go_package = "github.com/XRenso/barerepo/pkg/pb";
 
 service RepoService {
   rpc GetRepo(GetRepoRequest) returns (GetRepoResponse);
