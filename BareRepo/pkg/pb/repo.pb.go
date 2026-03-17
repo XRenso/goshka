@@ -213,7 +213,7 @@ const file_repo_proto_rawDesc = "" +
 	"\alicense\x18\n" +
 	" \x01(\tR\alicense2E\n" +
 	"\vRepoService\x126\n" +
-	"\aGetRepo\x12\x14.repo.GetRepoRequest\x1a\x15.repo.GetRepoResponseB'Z%github.com/XRenso/barerepo/pkg/pbb\x06proto3"
+	"\aGetRepo\x12\x14.repo.GetRepoRequest\x1a\x15.repo.GetRepoResponseB#Z!github.com/XRenso/barerepo/pkg/pbb\x06proto3"
 
 var (
 	file_repo_proto_rawDescOnce sync.Once
