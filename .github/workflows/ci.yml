@@ -89,17 +89,22 @@ jobs:
         working-directory: BareRepo
         run: go build -o /tmp/gateway ./gateway/cmd
 
-      - name: Start collector
+      - name: Start services
         env:
           COLLECTOR_PORT: "50051"
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: /tmp/collector &
-
-      - name: Start gateway
-        env:
           GATEWAY_PORT: "8080"
           COLLECTOR_ADDR: "localhost:50051"
-        run: /tmp/gateway &
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          nohup /tmp/collector > /tmp/collector.log 2>&1 &
+          nohup /tmp/gateway   > /tmp/gateway.log   2>&1 &
+          for i in $(seq 1 30); do
+            nc -z localhost 8080 2>/dev/null && echo "Gateway up after ${i}s" && exit 0
+            sleep 1
+          done
+          echo "=== collector log ===" && cat /tmp/collector.log
+          echo "=== gateway log ===" && cat /tmp/gateway.log
+          exit 1
 
       - name: Run Python tests
         working-directory: BareRepo
