@@ -1,0 +1,76 @@
+basePath: /
+definitions:
+  domain.GHRepo:
+    properties:
+      created_at:
+        type: string
+      creator:
+        type: string
+      description:
+        type: string
+      forks_cnt:
+        type: integer
+      issues_cnt:
+        type: integer
+      lang:
+        type: string
+      license:
+        type: string
+      size:
+        type: integer
+      stars_cnt:
+        type: integer
+      title:
+        type: string
+    type: object
+  rest.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Gateway for GitHub Repository Information Service. Proxies REST
+    requests to the Collector via gRPC.
+  title: BareRepo API Gateway
+  version: "1.0"
+paths:
+  /api/v1/repos/{owner}/{repo}:
+    get:
+      description: Returns info about a GitHub repository (name, description, stars,
+        forks, issues, language, size, license, created_at)
+      parameters:
+      - description: Repository owner
+        in: path
+        name: owner
+        required: true
+        type: string
+      - description: Repository name
+        in: path
+        name: repo
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.GHRepo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/rest.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/rest.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/rest.ErrorResponse'
+      summary: Get repository info
+      tags:
+      - repositories
+swagger: "2.0"
