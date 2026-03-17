@@ -24,6 +24,8 @@ jobs:
           filters: |
             GitCliTool:
               - 'GitCliTool/**'
+            BareRepo:
+              - 'BareRepo/**'
 
   test-GitCliTool:
     name: "Test Task 1 — GitCliTool"
@@ -53,6 +55,75 @@ jobs:
 
       - name: Run Python tests
         working-directory: GitCliTool
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m pytest tests/ -v --tb=short
+
+  test-BareRepo:
+    name: "Test Task 2 — BareRepo"
+    needs: detect-changes
+    if: ${{ contains(needs.detect-changes.outputs.tasks, 'BareRepo') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: BareRepo/go.mod
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install pytest
+
+      - name: Install protoc
+        run: |
+          sudo apt-get install -y protobuf-compiler
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+      - name: Generate protobuf
+        working-directory: BareRepo
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          protoc --proto_path=proto/repo \
+            --go_out=pkg/pb --go_opt=paths=source_relative \
+            --go-grpc_out=pkg/pb --go-grpc_opt=paths=source_relative \
+            proto/repo/repo.proto
+
+      - name: Build collector
+        working-directory: BareRepo
+        run: go build -o /tmp/collector ./collector/cmd
+
+      - name: Build gateway
+        working-directory: BareRepo
+        run: go build -o /tmp/gateway ./gateway/cmd
+
+      - name: Start services
+        env:
+          COLLECTOR_PORT: "50051"
+          GATEWAY_PORT: "8080"
+          COLLECTOR_ADDR: "localhost:50051"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          nohup /tmp/collector > /tmp/collector.log 2>&1 &
+          nohup /tmp/gateway   > /tmp/gateway.log   2>&1 &
+          for i in $(seq 1 30); do
+            nc -z localhost 8080 2>/dev/null && echo "Gateway up after ${i}s" && exit 0
+            sleep 1
+          done
+          echo "=== collector log ===" && cat /tmp/collector.log
+          echo "=== gateway log ===" && cat /tmp/gateway.log
+          exit 1
+
+      - name: Run Python tests
+        working-directory: BareRepo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -m pytest tests/ -v --tb=short

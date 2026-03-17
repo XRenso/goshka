@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package repo;
+
+option go_package = "github.com/XRenso/barerepo/pkg/pb";
+
+service RepoService {
+  rpc GetRepo(GetRepoRequest) returns (GetRepoResponse);
+}
+
+message GetRepoRequest {
+  string owner = 1;
+  string repo   = 2;
+}
+
+message GetRepoResponse {
+  string title      = 1;
+  string desc       = 2;
+  string creator    = 3;
+  int32  stars_cnt  = 4;
+  int32  forks_cnt  = 5;
+  int32  issues_cnt = 6;
+  string lang       = 7;
+  int32  size       = 8;
+  string created_at = 9;
+  string license    = 10;
+}
