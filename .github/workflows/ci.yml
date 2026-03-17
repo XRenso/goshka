@@ -101,19 +101,6 @@ jobs:
           COLLECTOR_ADDR: "localhost:50051"
         run: /tmp/gateway &
 
-      - name: Wait for gateway
-        run: |
-          for i in $(seq 1 30); do
-            if nc -z localhost 8080; then
-              echo "Gateway is up"
-              exit 0
-            fi
-            echo "Waiting... ($i/30)"
-            sleep 1
-          done
-          echo "Gateway did not start in time"
-          exit 1
-
       - name: Run Python tests
         working-directory: BareRepo
         env:
