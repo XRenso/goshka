@@ -73,29 +73,6 @@ jobs:
         with:
           go-version-file: BareRepo/go.mod
 
-      - name: Build collector
-        working-directory: BareRepo
-        run: go build ./collector/cmd
-
-      - name: Build gateway
-        working-directory: BareRepo
-        run: go build ./gateway/cmd
-
-      - name: Start services
-        working-directory: BareRepo
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: docker compose up -d --build
-
-      - name: Wait for gateway
-        run: |
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:8080/swagger/index.html && echo "Gateway is up" && exit 0
-            echo "Waiting... ($i/30)"
-            sleep 2
-          done
-          echo "Gateway did not start in time" && exit 1
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -104,13 +81,41 @@ jobs:
       - name: Install Python dependencies
         run: pip install pytest
 
+      - name: Build collector
+        working-directory: BareRepo
+        run: go build -o /tmp/collector ./collector/cmd
+
+      - name: Build gateway
+        working-directory: BareRepo
+        run: go build -o /tmp/gateway ./gateway/cmd
+
+      - name: Start collector
+        env:
+          COLLECTOR_PORT: "50051"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: /tmp/collector &
+
+      - name: Start gateway
+        env:
+          GATEWAY_PORT: "8080"
+          COLLECTOR_ADDR: "localhost:50051"
+        run: /tmp/gateway &
+
+      - name: Wait for gateway
+        run: |
+          for i in $(seq 1 30); do
+            if nc -z localhost 8080; then
+              echo "Gateway is up"
+              exit 0
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 1
+          done
+          echo "Gateway did not start in time"
+          exit 1
+
       - name: Run Python tests
         working-directory: BareRepo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -m pytest tests/ -v --tb=short
-
-      - name: Stop services
-        if: always()
-        working-directory: BareRepo
-        run: docker compose down
